@@ -191,18 +191,17 @@ sum(cabi_Health$Cum.Cost, na.rm=T)
 sum(subset(invacost_agg, Species%in%cabi_Health$Species& Impacted_sector!="Health")$Cum.Cost, na.rm=T)/sum(cabi_Health$Cum.Cost, na.rm=T)
 
 invacost_agri<-subset(invacost_agg, Impacted_sector_2=="Agriculture")
+length(unique(invacost_agri$Species))
 sum(invacost_agri$Cum.Cost)
 
 invacost_fore<-subset(invacost_agg, Impacted_sector_2=="Forestry")
+length(unique(invacost_fore$Species))
+
 sum(invacost_fore$Cum.Cost)
 
-invacost_health<-subset(invacost_agg, Impacted_sector_2=="Health")
-sum(invacost_health$Cum.Cost)
-
 invacost_fish<-subset(invacost_agg, Impacted_sector_2=="Fishery")
+length(unique(invacost_fish$Species))
 sum(invacost_fish$Cum.Cost)
-
-boxplot(Cum.Cost~Kingdom,data=invacost_agg)
 
 length(unique(subset(invacost_cln, Impacted_sector_2=="Agriculture")$Official_country))/length(unique(invacost_cln$Official_country))
 
@@ -248,7 +247,7 @@ invacost_agg<- subset(invacost_agg, logcost!=-Inf)
 invacost_agg<-subset(invacost_agg, is.na(Species)==F)
 #m<-gam(logcost~Type_of_cost_merged+Phylum+Impacted_sector+Environment+s(logn)+s(logrange)+s(logcostrange)+s(eventDate), data=invacost_agg, drop.unused.levels = F)
 brt_glob<-gbm.step(gbm.x =c(2,3,8,9,10,18,20:22) ,gbm.y =19, data=invacost_agg,learning.rate=0.01, n.trees=100, family='gaussian', tree.complexity=3)
-
+write.csv(as.data.frame(summary(brt_glob)), 'brt_glob.csv', row.names=F)
 # quant_glob<-gbm(logcost~Type_of_cost_merged+Kingdom+Phylum+Impacted_sector_2+logrange+logcostrange+Environment+logn+eventDate, distribution=list(name = "quantile", alpha = 0.025), data=invacost_agg, interaction.depth = 2, n.trees=brt_glob$n.trees, bag.fraction=0.75, cv.folds=10, shrinkage=brt_glob$shrinkage)
 # quant2_glob<-gbm(logcost~Type_of_cost_merged+Kingdom+Phylum+Impacted_sector_2+logrange+logcostrange+Environment+logn+eventDate, distribution=list(name = "quantile", alpha = 0.975), data=invacost_agg, interaction.depth = 2, n.trees=brt_glob$n.trees, bag.fraction=0.75, cv.folds=10, shrinkage=brt_glob$shrinkage)
 
@@ -285,9 +284,9 @@ data$logcostrange<-log(cost_range_size)
 data$logcostrange[data$logcostrange==-Inf]<-0
 
 library(taxize)
-# data_hier<-tapply(1:nrow(data),1:nrow(data),function(x){classification(get_gbifid(data$Species[x], ask=F,rows=1))}) #slow
-# saveRDS(data_hier, "data_hier_Agriculture.RDS")
-data_hier<-readRDS('data_hier_Agriculture.RDS')
+#  data_hier<-tapply(1:nrow(data),1:nrow(data),function(x){classification(get_gbifid(data$Species[x], ask=F,rows=1))}) #slow
+#saveRDS(data_hier, paste0("data_hier_",sector,".RDS"))
+data_hier<-readRDS(paste0("data_hier_",sector,".RDS"))
 data$Kingdom<-as.factor(unlist(lapply(data_hier,function(x){ifelse(length(x)>1,unique(x$name[1]),no=NA)})))
 data$Phylum<-as.factor(unlist(lapply(data_hier,function(x){ifelse(length(x)>1,unique(x$name[2]),no=NA)})))
 data$Order<-as.factor(unlist(lapply(data_hier,function(x){ifelse(length(x)>1,unique(x$name[4]),no=NA)})))
@@ -383,15 +382,15 @@ brt<-gbm.step(gbm.x=c(2,3,8:11,27:30),gbm.y =26, data=invacost_cont,learning.rat
 for (i in 1:3)
 {
 allcosts[j,(i-1)*3+1]<-sum(exp(predict.gbm(brt,newdata=subset(data_pred2, Species%in%invacost_agg$Species==F & Type_of_cost_merged==as.character(types[i])), n.trees = brt$n.trees)))/1000000+sum(subset(invacost_cont,((Type_of_cost_merged==as.character(types[i]))& Geographic_region==continent& Impacted_sector_2==sector))$  Cost_estimate_per_year_2017_USD_exchange_rate/1000000) # predicted total cost from gam in millions
-allcosts[j, (i-1)*3+2]<-allcosts[j,(i-1)*3+1] -sd(colSums(brt_preds_cont[which(data_pred2$Type_of_cost_merged==as.character(types[i])& data_pred2$Species%in%invacost_agg$Species==F),]))/1000000/sqrt(brt$n.trees)
+allcosts[j, (i-1)*3+2]<-allcosts[j,(i-1)*3+1] -sd(colSums(brt_preds_cont[which(data_pred2$Type_of_cost_merged==as.character(types[i])& data_pred2$Species%in%invacost_agg$Species==F),]))/1000000
 
-allcosts[j, (i-1)*3+3]<-allcosts[j,(i-1)*3+1] +sd(colSums(brt_preds_cont[which(data_pred2$Type_of_cost_merged==as.character(types[i])& data_pred2$Species%in%invacost_agg$Species==F),]))/1000000/sqrt(brt$n.trees)
+allcosts[j, (i-1)*3+3]<-allcosts[j,(i-1)*3+1] +sd(colSums(brt_preds_cont[which(data_pred2$Type_of_cost_merged==as.character(types[i])& data_pred2$Species%in%invacost_agg$Species==F),]))/1000000
 }
  }
  allcosts<-allcosts/1000
 colnames(allcosts)<-c("Damage", "LCI", "UCI", "Management","LCI", "UCI","Mixed","LCI", "UCI")
 rownames(allcosts)<-continents
-write.csv(allcosts, file=paste0("predicted_costs_3", sector,".csv"), row.names=F) 
+write.csv(allcosts, file=paste0("predicted_costs_3", sector,".csv")) 
 
 
 
@@ -408,9 +407,9 @@ sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$S
 
  brt_preds<-exp(predict(brt_glob, n.trees=1:brt_glob$n.trees, newdata=subset(data_pred, Species%in%invacost_agg$Species==F)))
  
- sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$Species==F), n.trees = brt_glob$n.trees))/1000000)+sum(invacost_sub_agg$Cum.Cost/1000000)-sd(colSums(brt_preds/1000000),0.025)
+ sum(invacost_sub_agg$Cum.Cost/1000000)+sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$Species==F), n.trees = brt_glob$n.trees))/1000000)-sd(colSums(brt_preds/1000000))
 
- sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$Species==F), n.trees = brt_glob$n.trees))/1000000)+sum(invacost_sub_agg$Cum.Cost/1000000)+sd(colSums(brt_preds/1000000),0.025)
+ sum(invacost_sub_agg$Cum.Cost/1000000)+sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$Species==F), n.trees = brt_glob$n.trees))/1000000)+sd(colSums(brt_preds/1000000))
  
  
 costbkdown<-matrix(0, 3,3)
@@ -418,40 +417,28 @@ for (i in 1:3)
 {
  costbkdown[i,1]<- sum(exp(predict.gbm(brt_glob,newdata=subset(data_pred, Species%in%invacost_agg$Species==F&Type_of_cost_merged==types[i]), n.trees = brt_glob$n.trees))/1000000)+sum(subset(invacost_sub_agg,Type_of_cost_merged==types[i])$Cum.Cost/1000000)
   
- costbkdown[i,2]<--sd(colSums(brt_preds[which(subset(data_pred, Species%in%invacost_agg$Species==F)$Type_of_cost_merged==types[i]),]/1000000))/sqrt(brt_glob$n.trees)+costbkdown[i,1]
- costbkdown[i,3]<-sd(colSums(brt_preds[which(subset(data_pred, Species%in%invacost_agg$Species==F)$Type_of_cost_merged==types[i]),]/1000000))/sqrt(brt_glob$n.trees)+costbkdown[i,1]
+ costbkdown[i,2]<--sd(colSums(brt_preds[which(subset(data_pred, Species%in%invacost_agg$Species==F)$Type_of_cost_merged==types[i]),]/1000000))+costbkdown[i,1]
+ costbkdown[i,3]<-sd(colSums(brt_preds[which(subset(data_pred, Species%in%invacost_agg$Species==F)$Type_of_cost_merged==types[i]),]/1000000))+costbkdown[i,1]
  }
 colnames(costbkdown)<-c("Estimate", "Lower CI", "Upper CI")
 row.names(costbkdown)<-c(types)
 
 spp_sub_agg<-invacost_sub_agg%>%group_by(Species)%>%summarise_if(is.numeric, sum)
 y<-spp_sub_agg$Cum.Cost/1000000
-Scenario=3 #toggle between 1 and 3
-
 LT<-min(spp_sub_agg$Cum.Cost)/1000000
-MT<-quantile(spp_sub_agg$Cum.Cost, 0.75)/1000000
 HT<-max(spp_sub_agg$Cum.Cost)/1000000
-if (Scenario==1)
-{
-  L_spp<-length(unique(data$Species))-nrow(invacost_sub_agg)
-  M_spp<-0
-  H_spp<-0
-}
-if (Scenario==3)
-{  
-L_spp<-0
 M_spp<-length(unique(data$Species))-nrow(invacost_sub_agg)
-H_spp<-0
-}
-m_gamma<-stan(file="gamma_damage_invacost.stan",data = list(y=y,LT=LT, HT=HT, L_spp=L_spp,M_spp=M_spp, H_spp=H_spp, MT=MT, N=length(y)),pars=c("shape","scale", "log_lik"),iter=10000, control=list(adapt_delta=0.999999),cores=1)
-m_weibull<-stan(file="weibull_damage_invacost.stan",data = list(y=y,LT=LT, HT=HT, L_spp=L_spp,M_spp=M_spp, H_spp=H_spp, MT=MT, N=length(y)),pars=c("shape","scale", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
-m_lognormal<-stan(file="lognormal_damage_invacost.stan",data = list(y=y,LT=LT, HT=HT, L_spp=L_spp,M_spp=M_spp, H_spp=H_spp, MT=MT, N=length(y)),pars=c("mu","sigma", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
-m_pareto<-stan(file="pareto_damage_invacost.stan",data = list(y=y,LT=LT, HT=HT, L_spp=L_spp,M_spp=M_spp, H_spp=H_spp, MT=MT, N=length(y)),pars=c("ymin", "alpha", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
+
+m_gamma<-stan(file="gamma_damage_invacost.stan",data = list(y=y, N=length(y)),pars=c("shape","scale", "log_lik"),iter=10000, control=list(adapt_delta=0.999999),cores=1)
+m_weibull<-stan(file="weibull_damage_invacost.stan",data = list(y=y,N=length(y)),pars=c("shape","scale", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
+m_lognormal<-stan(file="lognormal_damage_invacost.stan",data = list(y=y, N=length(y)),pars=c("mu","sigma", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
+m_pareto<-stan(file="pareto_damage_invacost.stan",data = list(y=y,LT=LT,N=length(y)),pars=c("ymin", "alpha", "log_lik"),iter=10000, control=list(adapt_delta=0.999999), cores=1)
 best_mod<-which.max(c(sum((rstan::extract(m_gamma)$log_lik)), sum((rstan::extract(m_weibull)$log_lik)), sum((rstan::extract(m_lognormal)$log_lik)), sum((rstan::extract(m_pareto)$log_lik))))
+
 #launch_shinystan(m_pareto)#visualize bayesian results
 cost_est<-0
 
-weights<-c(sum(exp(rstan::extract(m_gamma)$log_lik)), sum(exp(rstan::extract(m_weibull)$log_lik)), sum(exp(rstan::extract(m_lognormal)$log_lik)), sum(exp(rstan::extract(m_pareto)$log_lik)))/sum(sum(exp(rstan::extract(m_gamma)$log_lik)), sum(exp(rstan::extract(m_weibull)$log_lik)), sum(exp(rstan::extract(m_lognormal)$log_lik)), sum(exp(rstan::extract(m_pareto)$log_lik)))
+weights<-c(sum((rstan::extract(m_gamma)$log_lik)), sum((rstan::extract(m_weibull)$log_lik)), sum((rstan::extract(m_lognormal)$log_lik)), sum((rstan::extract(m_pareto)$log_lik)))/sum(sum((rstan::extract(m_gamma)$log_lik)), sum((rstan::extract(m_weibull)$log_lik)), sum((rstan::extract(m_lognormal)$log_lik)), sum((rstan::extract(m_pareto)$log_lik)))
 if (any(is.nan(weights)==T))
     {weights<-c(0,0,0,0)
   weights[best_mod]=1}
@@ -469,8 +456,8 @@ for (i in 1:length(x))
 colmax<-colmin<-colmid<-0
 for (i in 1:101)
 {
-  colmax[i]<-quantile(cost_ave[,i], 0.95)
-  colmin[i]<-quantile(cost_ave[,i],0.05)
+  colmax[i]<-quantile(cost_ave[,i], 0.975)
+  colmin[i]<-quantile(cost_ave[,i],0.025)
   colmid[i]<-quantile(cost_ave[,i], 0.5)
 }
 points<-0
@@ -481,18 +468,20 @@ for (i in 1:length(y))
 
 
 data2<-data.frame(cbind(x,colmax, colmin, colmid))
-ggplot(data) + geom_ribbon(data=data2, aes(x=x, ymin=colmin, ymax=colmax),fill=viridis(5)[2], alpha=0.5)+ scale_x_continuous(name="Annual Cost",labels = function(x) format(x, scientific = TRUE))+scale_y_continuous(name="Probability Density")+ geom_line(data=data2,aes(y=colmid,x=x))+theme_classic()+geom_point(data=data.frame(y),aes(x=y), y=colmid[points], colour=viridis(1)[1])+theme(axis.text=element_text(size=11))+theme(plot.margin=unit(c(0.5,1,0.5,0.5), "cm")) # plots distribution of annual costs across species in millions USD, observations as points
+ggplot(data) + geom_ribbon(data=data2, aes(x=x, ymin=colmin, ymax=colmax),fill=viridis(5)[2], alpha=0.5)+ scale_x_continuous(name="Annual Cost (million US$)",labels = function(x) format(x, scientific = TRUE))+scale_y_continuous(name="Probability Density")+ geom_line(data=data2,aes(y=colmid,x=x))+theme_classic()+geom_point(data=data.frame(y),aes(x=y), y=colmid[points], colour=viridis(1)[1])+theme(axis.text=element_text(size=11))+theme(plot.margin=unit(c(0.5,1,0.5,0.5), "cm")) # plots distribution of annual costs across species in millions USD, observations as points
 
-
+gamma_samps<-rstan::extract(m_gamma)
+weibull_samps<-rstan::extract(m_weibull)
+lognormal_samps<-rstan::extract(m_lognormal)
+pareto_samps<-rstan::extract(m_pareto)
 total_cost<-0
-for (i in 1:100)# should be 10000, but slow to run
+for (i in 10001:20000)
 {
-  total_cost[i]<-sum(y)+L_spp*LT*sum(weights*c(pgamma(LT, shape=rstan::extract(m_gamma)$shape[i], rate=rstan::extract(m_gamma)$scale[i], lower.tail=T), pweibull(LT,shape=rstan::extract(m_weibull)$shape[i], scale=rstan::extract(m_weibull)$scale[i], lower.tail=T), plnorm(LT,meanlog = rstan::extract(m_lognormal)$mu[i], sdlog=rstan::extract(m_lognormal)$sigma[i], lower.tail=T), ppareto(LT,scale=rstan::extract(m_pareto)$ymin[i], shape=rstan::extract(m_pareto)$alpha[i], lower.tail=T)))
-
-  if (Scenario>1)
-  {
-  total_cost[i]=total_cost[i]+M_spp*MT*(sum(weights*c(pgamma(MT, shape=rstan::extract(m_gamma)$shape[i], rate=rstan::extract(m_gamma)$scale[i], lower.tail=T), pweibull(MT,shape=rstan::extract(m_weibull)$shape[i], scale=rstan::extract(m_weibull)$scale[i], lower.tail=T), plnorm(MT,meanlog = rstan::extract(m_lognormal)$mu[i], sdlog=rstan::extract(m_lognormal)$sigma[i], lower.tail=T), ppareto(MT,scale=rstan::extract(m_pareto)$ymin[i], shape=rstan::extract(m_pareto)$alpha[i], lower.tail=T)))-sum(weights*c(pgamma(LT, shape=rstan::extract(m_gamma)$shape[i], rate=rstan::extract(m_gamma)$scale[i], lower.tail=T), pweibull(LT,shape=rstan::extract(m_weibull)$shape[i], scale=rstan::extract(m_weibull)$scale[i], lower.tail=T), plnorm(LT,meanlog = rstan::extract(m_lognormal)$mu[i], sdlog=rstan::extract(m_lognormal)$sigma[i], lower.tail=T), ppareto(LT,scale=rstan::extract(m_pareto)$ymin[i], shape=rstan::extract(m_pareto)$alpha[i], lower.tail=T))))
-  }
+  rand_gamma<-rgamma(10000,gamma_samps$shape[i], gamma_samps$scale[i])
+  rand_weibull<-rweibull(10000,weibull_samps$shape[i], weibull_samps$scale[i])
+rand_lognormal<-rlnorm(10000, lognormal_samps$mu[i], lognormal_samps$sigma[i])
+rand_pareto<-rpareto(10000, scale=pareto_samps$ymin[i], shape=pareto_samps$alpha[i])
+total_cost[i-10000]<-sum(y,c(weights[1]*sample(rand_gamma[which(rand_gamma>LT&rand_gamma<HT)], M_spp),weights[2]*sample(rand_weibull[which(rand_weibull>LT&rand_weibull<HT)], M_spp), weights[3]*sample(rand_lognormal[which(rand_lognormal>LT&rand_lognormal<HT)], M_spp),weights[4]*sample(rand_pareto[which(rand_pareto>LT&rand_pareto<HT)], M_spp)))
 }
 #in millions
 par(mar=c(4,4,2,2))
@@ -505,5 +494,5 @@ weights
 invacost_sub_agg%>%group_by(Type_of_cost_merged)%>%summarise_if(is.numeric, sum)
 type_cont<-subset(invacost_cln, (Species%in%cabi_Health$Species&Geographic_region%in%c("Europe", "North America", "South America", "Asia", "Africa", "Oceania")))%>%group_by(Type_of_cost_merged, Geographic_region)%>%summarise_if(is.numeric, sum, na.rm=T)  
 
-length(which(invacost_agg$Species%in%data$Species))
+length(which(unique(invacost_agg$Species)%in%unique(data$Species)))
 sum(invacost_sub_agg$Cum.Cost)
