@@ -246,14 +246,14 @@ invacost_agg$logn<-log(invacost_agg$n_intros+1)
 invacost_agg<- subset(invacost_agg, logcost!=-Inf)
 invacost_agg<-subset(invacost_agg, is.na(Species)==F)
 #m<-gam(logcost~Type_of_cost_merged+Phylum+Impacted_sector+Environment+s(logn)+s(logrange)+s(logcostrange)+s(eventDate), data=invacost_agg, drop.unused.levels = F)
-brt_glob<-gbm.step(gbm.x =c(2,3,8,9,10,18,20:22) ,gbm.y =19, data=invacost_agg,learning.rate=0.01, n.trees=100, family='gaussian', tree.complexity=3)
+brt_glob<-gbm.step(gbm.x =c(3,8,9,10,18,20,22) ,gbm.y =19, data=invacost_agg,learning.rate=0.01, n.trees=100, family='gaussian', tree.complexity=3)
 write.csv(as.data.frame(summary(brt_glob)), 'brt_glob.csv', row.names=F)
 # quant_glob<-gbm(logcost~Type_of_cost_merged+Kingdom+Phylum+Impacted_sector_2+logrange+logcostrange+Environment+logn+eventDate, distribution=list(name = "quantile", alpha = 0.025), data=invacost_agg, interaction.depth = 2, n.trees=brt_glob$n.trees, bag.fraction=0.75, cv.folds=10, shrinkage=brt_glob$shrinkage)
 # quant2_glob<-gbm(logcost~Type_of_cost_merged+Kingdom+Phylum+Impacted_sector_2+logrange+logcostrange+Environment+logn+eventDate, distribution=list(name = "quantile", alpha = 0.975), data=invacost_agg, interaction.depth = 2, n.trees=brt_glob$n.trees, bag.fraction=0.75, cv.folds=10, shrinkage=brt_glob$shrinkage)
 
 
 
-sector="Agriculture" #change this to sector of interest
+sector="Forestry" #change this to sector of interest
 data<-get(paste0('cabi_', sector))
 #data<-subset(data, ispathogen=='N') # pathogens?
 length(which(is.na(data$Cum.Cost)==F))/nrow(data) #completeness based on CABI
@@ -360,7 +360,7 @@ for (i in 1:11)
 {
   invacost_cont[,i]<-as.factor(invacost_cont[,i])
 }
-brt<-gbm.step(gbm.x=c(2,3,8:11,27:30),gbm.y =26, data=invacost_cont,learning.rate=0.03, n.trees=100, family='gaussian', tree.complexity=3)
+brt<-gbm.step(gbm.x=c(3,8:11,27:29),gbm.y =26, data=invacost_cont,learning.rate=0.03, n.trees=100, family='gaussian', tree.complexity=3)
 
 
 # quant<-gbm(logcost~Type_of_cost_merged+Kingdom+Phylum+Impacted_sector_2+logrange+logcostrange+Environment+logn+eventDate+Geographic_region, distribution=list(name = "quantile", alpha = 0.025), data=invacost_cont, interaction.depth = 2, n.trees=brt$n.trees, shrinkage=brt$shrinkage, bag.fraction=0.75,cv.folds=10)
