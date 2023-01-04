@@ -16,10 +16,11 @@ data:
 - sTwist database: SInAS_AlienSpeciesDB_2.4.1.csv and sTwist_database.csv (older version with more descriptor columns)
 - taxonomic groupings: species_coarse_categories_IC4_1.xlsx
 - full taxonomy by sector: .RDS files
+- pathways: Pathways_4_1.csv
 
 output:
 - data_pred* by sector - set of data used for extrapolation
-- predicted_costs* by sector - extrapolated costs
+- predicted_costs\* by sector - extrapolated costs
 - brt_glob.csv - relative influence results of BRT model (also in relinf.pdf)
 - cost_by_continent_sector.rds - extrapolated BRT costs by continent and sector
-- *_bayes.pdf - model averaging result for extrapolated cost distribuion in distributional scenario
+- \*_bayes.pdf - model averaging result for extrapolated cost distribuion in distributional scenario
