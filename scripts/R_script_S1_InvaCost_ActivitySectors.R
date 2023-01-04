@@ -16,9 +16,8 @@ options(stringsAsFactors=FALSE)
 
 data("invacost")
 
-folder <- "ActivitySector" # change to path on local computer
 ## load species broad category file
-spCat <- as.data.frame(read_xlsx(paste0(folder,"/D1_taxonomic_group_categories.xlsx"),
+spCat <- as.data.frame(read_xlsx("./data/D1_taxonomic_group_categories.xlsx",
                                  na = c("NA", "#N/A", "#DIV/0!", "#VALEUR!",
                                         "Unspecified", "Unknown"),
                                  guess_max = 10000))
