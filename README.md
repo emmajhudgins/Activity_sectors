@@ -1,6 +1,6 @@
 # Biological invasions as burdens to primary economic sectors
 
-*Repo to accompany the manuscript by* Anna J. Turbelin\*, Emma J. Hudgins\*, Jane A. Catford, Ross N. Cuthbert, Christophe Diagne, Melina Kourantidou, David Roiz, and Franck Courchamp
+*Repo to accompany the manuscript by* Anna J. Turbelin\*, Emma J. Hudgins\*, Jane A. Catford, Ross N. Cuthbert, Christophe Diagne, Melina Kourantidou, David Roiz, and Franck Courchamp https://doi.org/10.21203/rs.3.rs-2444595/v1
 
 \* co-first authorship
 
