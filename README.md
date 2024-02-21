@@ -4,7 +4,6 @@
 
 \* co-first authorship
 
-preprint available at: XXXX
 
 scripts:
 - Data cleaning script: R_Script_S1_Invacost_ActivitySectors.R
